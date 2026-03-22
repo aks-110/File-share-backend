@@ -46,7 +46,7 @@ route.post("/geturl", rate, async (req, res) => {
       // 🔥 FIX: AWS requirement ke hisaab se chunk size exactly 5MB rakha gaya hai
       partsize = 5 * 1024 * 1024;
 
-      await DeleteQueue.add("delete-multipart", { key, uploadId: uploadUrl });
+      // await DeleteQueue.add("delete-multipart", { key, uploadId: uploadUrl });
     } else {
       uploadUrl = await getSignedUrl(
         s3,
