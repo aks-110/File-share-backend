@@ -4,12 +4,11 @@ export const route = express.Router();
 
 route.post("/save-progress", async (req, res) => {
   try {
-    const { id, partNumber } = req.body;
+    const { id, partNumber, etag } = req.body; // 🔥 FIX 1: etag add kiya
 
-    // Save the part number in a Redis Set
-    await connection.sadd(`upload:${id}:parts`, partNumber);
+    // 🔥 FIX 2: PartNumber aur ETag dono ko ek string banakar save kiya (e.g. "1::xyz123")
+    await connection.sadd(`upload:${id}:parts`, `${partNumber}::${etag}`);
 
-    // 🔥 FIX: Set expiry for 24 hours so Redis doesn't get full
     await connection.expire(`upload:${id}:parts`, 86400);
 
     res.send({ success: true });
