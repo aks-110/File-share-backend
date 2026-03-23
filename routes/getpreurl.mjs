@@ -34,7 +34,6 @@ route.post("/geturl", rate, async (req, res) => {
 
     const filesizeinMb = filesize / (1024 * 1024);
 
-    // 🔥 FIX: 5MB se badi koi bhi file ab multipart jayegi taaki usko pause/resume kiya ja sake
     if (filesizeinMb > 5) {
       const command = new CreateMultipartUploadCommand({
         Bucket: process.env.BUCKET_NAME,
@@ -43,10 +42,7 @@ route.post("/geturl", rate, async (req, res) => {
       const response = await s3.send(command);
       uploadUrl = response.UploadId;
 
-      // 🔥 FIX: AWS requirement ke hisaab se chunk size exactly 5MB rakha gaya hai
       partsize = 5 * 1024 * 1024;
-
-      // await DeleteQueue.add("delete-multipart", { key, uploadId: uploadUrl });
     } else {
       uploadUrl = await getSignedUrl(
         s3,

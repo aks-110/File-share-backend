@@ -12,19 +12,15 @@ route.post("/completeMultipart", async (req, res) => {
       throw new Error("Parts array is empty. Nothing to complete.");
     }
 
-    // 1. Tukdo ko sahi sequence mein lagana (1, 2, 3...)
     parts.sort((a, b) => a.PartNumber - b.PartNumber);
 
-    // 2. AWS Strict Formatting (ETag Validation)
     const cleanParts = parts.map((p) => {
-      // Agar ETag gayab hai (Purana upload resume kiya gaya hai)
       if (!p.ETag || p.ETag === "undefined" || p.ETag === "null") {
         throw new Error(
           `ETag is missing for Part ${p.PartNumber}. Please start a fresh upload.`,
         );
       }
 
-      // AWS S3 ETag hamesha double quotes (" ") mein mangta hai
       let formattedEtag = p.ETag;
       if (!formattedEtag.startsWith('"')) {
         formattedEtag = `"${formattedEtag}"`;
@@ -52,7 +48,6 @@ route.post("/completeMultipart", async (req, res) => {
     console.log("✅ Multipart Upload Combined Successfully!");
     res.json({ success: true });
   } catch (error) {
-    // 🔥 AB HUMEIN EXACT ERROR PATA CHALEGA
     console.error("🔥 COMPLETE MULTIPART ERROR:", error);
     return res
       .status(500)

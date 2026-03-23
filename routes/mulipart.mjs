@@ -19,7 +19,6 @@ route.post("/multipart", async (req, res) => {
       });
 
       const url = await getSignedUrl(s3, command, {
-        // 🔥 TIME BOMB BUG FIXED: Increased expiry from 3600 (1 hour) to 43200 (12 hours)
         expiresIn: 43200,
       });
 

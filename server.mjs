@@ -1,42 +1,44 @@
-import express from "express"
-import dotenv from "dotenv"
+import express from "express";
+import dotenv from "dotenv";
 import "./BullMq/Workers.mjs";
-import {route as getPreUrlRoute} from "./routes/getpreurl.mjs"
-import {route as downloadRoute} from "./routes/download.mjs"
-import {route as multipartRoute} from "./routes/mulipart.mjs"
-import {route as completeMultipartRoute} from "./routes/completemultipart.mjs"
-import {route as cancelUploadRoute} from "./routes/cancel.mjs"
+import { route as getPreUrlRoute } from "./routes/getpreurl.mjs";
+import { route as downloadRoute } from "./routes/download.mjs";
+import { route as multipartRoute } from "./routes/mulipart.mjs";
+import { route as completeMultipartRoute } from "./routes/completemultipart.mjs";
+import { route as cancelUploadRoute } from "./routes/cancel.mjs";
 
-
-import {route as saveProgressRoute} from "./routes/saveprogress.mjs"
-import {route as getProgressRoute} from "./routes/getprogress.mjs"
+import { route as saveProgressRoute } from "./routes/saveprogress.mjs";
+import { route as getProgressRoute } from "./routes/getprogress.mjs";
 
 dotenv.config();
-import cors from "cors"
-import mongoose from "mongoose"
+import cors from "cors";
+import mongoose from "mongoose";
 
-mongoose.connect(process.env.MONGO_URI).then(() => {
-  console.log("Connected to MongoDB");
-}).catch((err) => {
-  console.log("Failed to connect to MongoDB");
-  console.log(err);
-});
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((err) => {
+    console.log("Failed to connect to MongoDB");
+    console.log(err);
+  });
 
 const app = express();
 
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 app.use(express.json());
 app.use(cors());
-app.use('/',getPreUrlRoute);
-app.use('/',downloadRoute);
-app.use('/',multipartRoute);
-app.use('/',completeMultipartRoute);
-app.use('/',cancelUploadRoute);
+app.use("/", getPreUrlRoute);
+app.use("/", downloadRoute);
+app.use("/", multipartRoute);
+app.use("/", completeMultipartRoute);
+app.use("/", cancelUploadRoute);
 
-app.use('/', saveProgressRoute);
-app.use('/', getProgressRoute);
+app.use("/", saveProgressRoute);
+app.use("/", getProgressRoute);
 
-app.listen(process.env.PORT,(req,res)=>{
+app.listen(process.env.PORT, (req, res) => {
   console.log(`Running at Port ${process.env.PORT}`);
 });

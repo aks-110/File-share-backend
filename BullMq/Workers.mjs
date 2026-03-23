@@ -20,18 +20,6 @@ import mongoose from "mongoose";
 await mongoose.connect(process.env.MONGO_URI);
 
 console.log("Mongo connected in worker");
-
-// async function authorize() {
-//   const res = await axios.get("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", {
-//     auth: {
-//       username: process.env.KEY_ID,
-//       password: process.env.APP_KEY
-//     }
-//   })
-
-//   authToken = res.data.authorizationToken
-//   apiUrl = res.data.apiUrl
-// }
 async function deleteFile(key) {
   try {
     // list all versions
@@ -73,7 +61,7 @@ async function deleteFile(key) {
       );
     }
 
-    console.log("✅ Fully deleted:", key);
+    console.log("Fully deleted:", key);
   } catch (err) {
     console.log("Delete failed:", err.message);
     throw err;
@@ -119,13 +107,13 @@ export const delworker = new Worker(
   { connection },
 );
 delworker.on("completed", (job) => {
-  console.log(`✅ Job completed: ${job.name}`);
+  console.log(`Job completed: ${job.name}`);
 });
 
 delworker.on("failed", (job, err) => {
-  console.log(`❌ Job failed: ${job?.name}`, err);
+  console.log(`Job failed: ${job?.name}`, err);
 });
 
 delworker.on("error", (err) => {
-  console.log("🚨 Worker error:", err);
+  console.log("Worker error:", err);
 });

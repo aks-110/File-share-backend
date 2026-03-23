@@ -2,7 +2,6 @@ import { slidingWindowLimiter } from "./slidingWindow.mjs";
 
 export const rate = async (req, res, next) => {
   try {
-    // 🔥 FIX 2: Proxy ke piche se Asli Client IP nikalne ka solid tareeqa
     const ip =
       req.headers["x-forwarded-for"]?.split(",")[0] ||
       req.ip ||
@@ -21,7 +20,6 @@ export const rate = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("Rate limiter error:", err);
-    // Error aane par block na karein, request aage jane dein
     next();
   }
 };
