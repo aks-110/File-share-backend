@@ -1,33 +1,36 @@
 import { s3 } from "../BackBlaze/client.mjs";
 import {
   PutObjectCommand,
-  GetObjectCommand,
   CreateMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import QRCode from "qrcode";
-import "../Models/FileModel.mjs";
 import { Router } from "express";
 import generateId from "../utilis/Id.js";
 import { rate } from "../rate/ratelimiter.mjs";
 import dotenv from "dotenv";
-import jwt from "jsonwebtoken";
 import File from "../Models/FileModel.mjs";
 import bcrypt from "bcrypt";
 import { DeleteQueue } from "../BullMq/Queue.mjs";
+
 dotenv.config();
 
 export const route = Router();
 
 route.post("/geturl", rate, async (req, res) => {
   try {
-    const { password, filesize, expiry, fileName } = req.body;
+    const { password, filesize, fileName } = req.body;
     if (!filesize)
       return res.status(400).json({ message: "FileSize required" });
 
     const safeName = fileName ? fileName.replace(/\s+/g, "-") : "file.txt";
     const id = generateId();
     const key = `uploads/${id}_${safeName}`;
+
+    // STRICT 24 HOURS (1 Day) SETTINGS
+    const EXPIRY_SECONDS = 86400; // 24 hours in seconds
+    const DELAY_MILLISECONDS = 86400 * 1000; // 24 hours in ms for BullMQ
+
     let uploadUrl;
     let strategy = "multipart";
     let partsize;
@@ -41,13 +44,12 @@ route.post("/geturl", rate, async (req, res) => {
       });
       const response = await s3.send(command);
       uploadUrl = response.UploadId;
-
       partsize = 5 * 1024 * 1024;
     } else {
       uploadUrl = await getSignedUrl(
         s3,
         new PutObjectCommand({ Bucket: process.env.BUCKET_NAME, Key: key }),
-        { expiresIn: 2 * 60 * 1000 },
+        { expiresIn: EXPIRY_SECONDS }, // strictly 24 hours
       );
       strategy = "single";
       partsize = null;
@@ -66,26 +68,33 @@ route.post("/geturl", rate, async (req, res) => {
         filesize,
       });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Server error" });
-      return;
+      console.error("DB Create Error:", err);
+      return res.status(500).json({ message: "Database error" });
     }
 
+    // Add jobs to Queue with STRICT 24 HOUR DELAY
     await DeleteQueue.addBulk([
       {
         name: "delete-file",
         data: { key: key },
-        opts: { delay: expiry * 1000 },
+        opts: {
+          delay: DELAY_MILLISECONDS,
+          removeOnComplete: true, // Auto-clean the queue list itself
+        },
       },
       {
         name: "delete-db",
-        data: { id: id, password: hashedpassword },
-        opts: { delay: expiry * 1000 },
+        data: { id: id },
+        opts: {
+          delay: DELAY_MILLISECONDS,
+          removeOnComplete: true,
+        },
       },
     ]);
-    res.json({ strategy: strategy, uploadUrl, id, qrDataUrl, partsize, key });
+
+    res.json({ strategy, uploadUrl, id, qrDataUrl, partsize, key });
   } catch (err) {
-    console.error(err);
+    console.error("GetUrl Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
