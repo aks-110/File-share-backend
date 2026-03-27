@@ -6,7 +6,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import QRCode from "qrcode";
 import { Router } from "express";
-import generateId from "../utilis/Id.js";
+import generateId from "../utilis/Id.mjs"; // Ensure this matches your file extension
 import { rate } from "../rate/ratelimiter.mjs";
 import dotenv from "dotenv";
 import File from "../Models/FileModel.mjs";
@@ -27,13 +27,12 @@ route.post("/geturl", rate, async (req, res) => {
     const id = generateId();
     const key = `uploads/${id}_${safeName}`;
 
-    // STRICT 24 HOURS (1 Day) SETTINGS
-    const EXPIRY_SECONDS = 86400; // 24 hours in seconds
-    const DELAY_MILLISECONDS = 86400 * 1000; // 24 hours in ms for BullMQ
-
+    const EXPIRY_SECONDS = 86400;
+    const DELAY_MILLISECONDS = 86400 * 1000;
     let uploadUrl;
     let strategy = "multipart";
     let partsize;
+    let actualUploadIdForQueue = null;
 
     const filesizeinMb = filesize / (1024 * 1024);
 
@@ -44,12 +43,13 @@ route.post("/geturl", rate, async (req, res) => {
       });
       const response = await s3.send(command);
       uploadUrl = response.UploadId;
+      actualUploadIdForQueue = response.UploadId;
       partsize = 5 * 1024 * 1024;
     } else {
       uploadUrl = await getSignedUrl(
         s3,
         new PutObjectCommand({ Bucket: process.env.BUCKET_NAME, Key: key }),
-        { expiresIn: EXPIRY_SECONDS }, // strictly 24 hours
+        { expiresIn: EXPIRY_SECONDS },
       );
       strategy = "single";
       partsize = null;
@@ -72,14 +72,17 @@ route.post("/geturl", rate, async (req, res) => {
       return res.status(500).json({ message: "Database error" });
     }
 
-    // Add jobs to Queue with STRICT 24 HOUR DELAY
     await DeleteQueue.addBulk([
       {
         name: "delete-file",
-        data: { key: key },
+
+        data: {
+          key: key,
+          uploadId: actualUploadIdForQueue,
+        },
         opts: {
           delay: DELAY_MILLISECONDS,
-          removeOnComplete: true, // Auto-clean the queue list itself
+          removeOnComplete: true,
         },
       },
       {
