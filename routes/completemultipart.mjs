@@ -45,10 +45,10 @@ route.post("/completeMultipart", async (req, res) => {
 
     await s3.send(command);
 
-    console.log("✅ Multipart Upload Combined Successfully!");
+    console.log(" Multipart Upload Combined Successfully!");
     res.json({ success: true });
   } catch (error) {
-    console.error("🔥 COMPLETE MULTIPART ERROR:", error);
+    console.error(" COMPLETE MULTIPART ERROR:", error);
     return res
       .status(500)
       .json({ error: error.message || "Failed to complete upload" });
