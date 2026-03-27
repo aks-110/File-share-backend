@@ -4,7 +4,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import QRCode from "qrcode";
 import File from "../Models/FileModel.mjs";
 import { Router } from "express";
-import generateId from "../utilis/Id.js";
+import generateId from "../utilis/Id.mjs";
 import { rate } from '../rate/ratelimiter.mjs';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken'
