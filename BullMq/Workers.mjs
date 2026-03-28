@@ -26,16 +26,16 @@ export const delworker = new Worker(
     switch (job.name) {
       case "delete-file":
         try {
-         
+          // Normal Delete Command for all files
           await s3.send(
             new DeleteObjectCommand({
               Bucket: process.env.BUCKET_NAME,
               Key: job.data.key,
             }),
           );
-          console.log(` [Worker] Deleted Cloud File: ${job.data.key}`);
+          console.log(`[Worker] Deleted Cloud File: ${job.data.key}`);
 
-         
+          // Extra cleanup for Multipart (If any orphan chunks exist)
           if (job.data.uploadId) {
             await s3
               .send(
@@ -45,11 +45,11 @@ export const delworker = new Worker(
                   UploadId: job.data.uploadId,
                 }),
               )
-              .catch(() => {}); 
+              .catch(() => {}); // Catch silently, as they are likely already combined or deleted
           }
         } catch (err) {
           console.error(
-            ` [Worker] Cloud Deletion failed for ${job.data.key}:`,
+            `[Worker] Cloud Deletion failed for ${job.data.key}:`,
             err.message,
           );
         }
@@ -59,8 +59,13 @@ export const delworker = new Worker(
         try {
           const deletedFile = await File.findOneAndDelete({ id: job.data.id });
           if (deletedFile) {
-            console.log(` [Worker] Deleted DB Record: ${job.data.id}`);
+            console.log(`[Worker] Deleted DB Record: ${job.data.id}`);
+            // Also clean up Redis memory used for saving progress
             await connection.del(`upload:${job.data.id}:parts`);
+          } else {
+            console.log(
+              `[Worker Info] DB Record ${job.data.id} not found (Already auto-deleted by MongoDB TTL)`,
+            );
           }
         } catch (err) {
           console.error(
@@ -73,3 +78,7 @@ export const delworker = new Worker(
   },
   { connection },
 );
+
+delworker.on("failed", (job, err) => {
+  console.error(`[Worker Error] Job failed: ${job?.name}`, err);
+});

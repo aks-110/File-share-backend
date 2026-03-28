@@ -27,8 +27,10 @@ route.post("/geturl", rate, async (req, res) => {
     const id = generateId();
     const key = `uploads/${id}_${safeName}`;
 
+    // STRICT 24 HOURS (1 Day) SETTINGS
     const EXPIRY_SECONDS = 86400;
     const DELAY_MILLISECONDS = 86400 * 1000;
+
     let uploadUrl;
     let strategy = "multipart";
     let partsize;
@@ -60,12 +62,16 @@ route.post("/geturl", rate, async (req, res) => {
       `${process.env.FRONTEND_URL}/download/${id}`,
     );
 
+    // Calculate exact expiry date for MongoDB
+    const expireDate = new Date(Date.now() + DELAY_MILLISECONDS);
+
     try {
       await File.create({
         id,
         filekey: key,
         password: hashedpassword,
         filesize,
+        expiresAt: expireDate, // <--- Add expiry time to database
       });
     } catch (err) {
       console.error("DB Create Error:", err);
@@ -75,7 +81,6 @@ route.post("/geturl", rate, async (req, res) => {
     await DeleteQueue.addBulk([
       {
         name: "delete-file",
-
         data: {
           key: key,
           uploadId: actualUploadIdForQueue,
