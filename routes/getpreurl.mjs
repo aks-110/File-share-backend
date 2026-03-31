@@ -71,7 +71,7 @@ route.post("/geturl", rate, async (req, res) => {
         filekey: key,
         password: hashedpassword,
         filesize,
-        expiresAt: expireDate, // <--- Add expiry time to database
+        expiresAt: expireDate, // <--- YEH LINE MISSING THI! Isse auto-delete chalega
       });
     } catch (err) {
       console.error("DB Create Error:", err);
